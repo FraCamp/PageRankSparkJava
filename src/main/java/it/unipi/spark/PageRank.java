@@ -18,6 +18,7 @@ public class PageRank {
     private static long nodesNumber;
 
     public static void main(String[] args){
+        //Taking arguments as configuration parameters
         if(args.length == 4){
             iterations = Integer.parseInt(args[0]);
             alpha = Double.parseDouble(args[1]);
@@ -35,27 +36,40 @@ public class PageRank {
         JavaPairRDD<String, ArrayList<String>> graph = input.mapToPair(GraphBuilder::buildGraph).cache();
         // We get the number of nodes in the graph
         nodesNumber = graph.count();
+        /*
+         We create this list with the page titles present in the initial dataset, we will use this list later
+         to filter the page that we don't need
+        */
         List<String> datasetKeys = graph.keys().collect();
         // Here we create a new RDD adding the initial rank = 1/nodesNumber
         Double n = 1.0d/((double)nodesNumber);
         JavaPairRDD<String, Double> rankedNodes = graph.mapValues(value -> n);
 
-        JavaPairRDD<String, Double> summedContributes = null;
         for (int i = 0; i < iterations; i++){
-            // We calculate the contribute to send to the nodes' neighbors and filter the contributes sent to the pages
-            // that do not belong to the dataset
+            /*
+             We calculate the contribute to send to the nodes' neighbors and filter the contributes sent to the pages
+             that do not belong to the dataset
+            */
             JavaPairRDD<String, Double> contribution = graph.join(rankedNodes).flatMapToPair(PageRank::sendContributes)
                     .filter(x -> datasetKeys.contains(x._1));
-            summedContributes = contribution.reduceByKey(PageRank::addContributes);
+            // Here we sum the contributions per node
+            JavaPairRDD<String, Double> summedContributes = contribution.reduceByKey(PageRank::addContributes);
+            // Here we use the algorithm formula to compute the new Page Rank value per each node
             rankedNodes = summedContributes.mapValues(value->n * alpha + (1.0d - alpha)*value);
         }
-        // To sort the pages, we initially swap the values and keys, than we perform the sorting on the new keys
-        // so we swap again in order to get the initial RDD structure back
+        /*
+         To sort the pages, we initially swap the values and keys, than we perform the sorting on the new keys
+         so we swap again in order to get the initial RDD structure back
+        */
         JavaPairRDD<String, Double> sortedPageRank = rankedNodes.mapToPair(Tuple2::swap).sortByKey(false).mapToPair(Tuple2::swap);
         // We save the RDD in a specified location
         sortedPageRank.saveAsTextFile(outputFile);
     }
 
+    /**
+     * Function that compute the contribute per node and send it to each neighbors (if present)
+     * The contribute is computed by dividing the rank for the number of node neighbors
+     */
     private static Iterator<Tuple2<String, Double>> sendContributes(Tuple2<String, Tuple2<ArrayList<String>, Double>> tuple) {
         ArrayList<Tuple2<String, Double>> contributes = new ArrayList<>();
         String title = tuple._1;
@@ -72,6 +86,10 @@ public class PageRank {
         return contributes.iterator();
     }
 
+    /**
+     * Function that check if the numbers passed are actual number and if they are return the sum of them in order to
+     * calculate the node rank
+     */
     private static Double addContributes(Double c1, Double c2){
         if(!c1.isNaN() && !c2.isNaN())
             return c1 + c2;
