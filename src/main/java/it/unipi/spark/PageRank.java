@@ -18,7 +18,10 @@ public class PageRank {
     private static long nodesNumber;
 
     public static void main(String[] args){
-        //Taking arguments as configuration parameters
+        /*
+        Checking if the number of parameters is correct and then assign them properly otherwise the parameters are
+        already configured with the default values
+        */
         if(args.length == 4){
             iterations = Integer.parseInt(args[0]);
             alpha = Double.parseDouble(args[1]);
@@ -40,7 +43,7 @@ public class PageRank {
          We create this list with the page titles present in the initial dataset, we will use this list later
          to filter the page that we don't need
         */
-        List<String> datasetKeys = graph.keys().collect();
+        List<String> datasetPage = graph.keys().collect();
         // Here we create a new RDD adding the initial rank = 1/nodesNumber
         Double n = 1.0d/((double)nodesNumber);
         JavaPairRDD<String, Double> rankedNodes = graph.mapValues(value -> n);
@@ -51,7 +54,7 @@ public class PageRank {
              that do not belong to the dataset
             */
             JavaPairRDD<String, Double> contribution = graph.join(rankedNodes).flatMapToPair(PageRank::sendContributes)
-                    .filter(x -> datasetKeys.contains(x._1));
+                    .filter(x -> datasetPage.contains(x._1));
             // Here we sum the contributions per node
             JavaPairRDD<String, Double> summedContributes = contribution.reduceByKey(PageRank::addContributes);
             // Here we use the algorithm formula to compute the new Page Rank value per each node

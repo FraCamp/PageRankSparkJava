@@ -13,8 +13,8 @@ public class GraphBuilder {
 
     /**
      * Function that parses the string passed to find the words that satisfies the pattern "link" and "title"
-     * the Title will be the string of the tuple, using the l matcher and the while we will build the arraylist (of the
-     * tuple) of neighbors (the actual links present in a page, named title)
+     * the title will be the node, with the while we will get all its neighbors, in order to get back a structure
+     * formed by the node title and a list of all its neighbors (while they are presents)
      */
     public static Tuple2<String, ArrayList<String>> buildGraph(String page){
         t = title.matcher(page);
