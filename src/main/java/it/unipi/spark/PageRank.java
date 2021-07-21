@@ -48,6 +48,7 @@ public class PageRank {
         Double n = 1.0d/((double)nodesNumber);
         JavaPairRDD<String, Double> rankedNodes = graph.mapValues(value -> n);
 
+        JavaPairRDD<String, Double> summedContributes = null;
         for (int i = 0; i < iterations; i++){
             /*
              We calculate the contribute to send to the nodes' neighbors and filter the contributes sent to the pages
@@ -56,7 +57,7 @@ public class PageRank {
             JavaPairRDD<String, Double> contribution = graph.join(rankedNodes).flatMapToPair(PageRank::sendContributes)
                     .filter(x -> datasetPage.contains(x._1));
             // Here we sum the contributions per node
-            JavaPairRDD<String, Double> summedContributes = contribution.reduceByKey(PageRank::addContributes);
+            summedContributes = contribution.reduceByKey(PageRank::addContributes);
             // Here we use the algorithm formula to compute the new Page Rank value per each node
             rankedNodes = summedContributes.mapValues(value->n * alpha + (1.0d - alpha)*value);
         }
